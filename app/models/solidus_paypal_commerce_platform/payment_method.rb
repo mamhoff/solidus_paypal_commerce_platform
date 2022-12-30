@@ -97,5 +97,26 @@ module SolidusPaypalCommercePlatform
 
       "https://www.paypal.com/sdk/js?#{parameters.compact.to_query}".html_safe # rubocop:disable Rails/OutputSafety
     end
+
+    # Will void the payment depending on its state or return false
+    #
+    # Used by Solidus >= 2.4 instead of +cancel+
+    #
+    # If the transaction has not yet been settled, we can void the transaction.
+    # Otherwise, we return false so Solidus creates a refund instead.
+    #
+    # @api public
+    # @param payment [Spree::Payment] the payment to void
+    # @return [Response|FalseClass]
+    def try_void(payment)
+      return false if get_order_status(payment) == "COMPLETED"
+      void(payment.response_code, nil, {})
+    end
+
+    private
+
+    def get_order_status(payment)
+      gateway.get_order(payment.source.paypal_order_id).status
+    end
   end
 end
